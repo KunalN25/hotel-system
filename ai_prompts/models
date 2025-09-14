@@ -1,0 +1,30 @@
+IGNORE ANYTHING INSIDE COMMENT BLOCK OR LINE SUCH AS /* */ OR // OR #
+
+// add following to models.go file
+
+add go type for the table
+<paste create/alter query here>
+and add a New method for this that returns the object
+and also create string array of columns
+
+// in store.go
+Add get and create methods for this table in my store.go file
+Get by id  // or something else
+Create an entry taking the above object as parameter
+// Add  any update scripts here as well
+Use following as receiver object
+func (ds *dataStore) <function_name> ...
+use the list of columns array while writing query
+While referencing anything from models file, no need to import models package, just use the type directly
+No need to use context in the function signature
+
+dataStore type
+type dataStore struct {
+	db *sql.DB
+}
+
+// in types.go
+Add the same in interface type
+
+
+
