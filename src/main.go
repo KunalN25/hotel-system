@@ -33,7 +33,6 @@ func main() {
 	if stripeKey == "" {
 		log.Fatal("STRIPE_API_KEY environment variable not set")
 	}
-
 	stripe.Key = stripeKey
 
 	db, err := sql.Open("postgres", connStr)

@@ -2,7 +2,6 @@ package services
 
 import (
 	"encoding/json"
-	"fmt"
 	"hotel-system/src/pb"
 	"hotel-system/src/store"
 	"hotel-system/src/utils"
@@ -27,7 +26,7 @@ func (s *Service) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid username", http.StatusUnauthorized)
 		return
 	}
-	fmt.Println("User found:", user)
+
 	if !utils.CheckPasswordHash(loginRequest.Password, user.Password) {
 		http.Error(w, "Invalid password", http.StatusUnauthorized)
 		return

@@ -18,13 +18,14 @@ type StorageService interface {
 	UpdateHotelRooms(hotelId int64, newRoomCount int) error
 	CreateBooking(booking *Booking) (int64, error)
 	UpdateBookingStatus(bookingId int64, status BookingStatus) error
-	GetBookingById(bookingId int64) (Booking, error)
+	GetBookingById(bookingId int64) (*Booking, error)
 	GetCompletedBookings() ([]*Booking, error)
 	GetExpiredBookings() ([]*Booking, error)
 	CreatePayment(payment *Payment) error
 	GetPaymentByCheckoutSessionId(checkoutSessionId string) (*Payment, error)
 	GetPaymentByBookingId(bookingId int64) (*Payment, error)
-	UpdatePaymentStatus(paymentId int, status constants.PaymentStatus) error
+	UpdatePaymentStatus(paymentId string, status constants.PaymentStatus) error
+	GetExpiredPayments() ([]*Payment, error)
 
 	UpdateBookingStatusTx(tx *sql.Tx, bookingId int64, status BookingStatus) error
 	GetBookingByIdTx(tx *sql.Tx, bookingId int64) (Booking, error)
@@ -37,7 +38,8 @@ type StorageService interface {
 	GetHotelByIdTx(tx *sql.Tx, hotelId int64) (Hotel, error)
 
 	GetPaymentByCheckoutSessionIdTx(tx *sql.Tx, checkoutSessionId string) (*Payment, error)
-	UpdatePaymentStatusTx(tx *sql.Tx, paymentId int, status constants.PaymentStatus) error
+	UpdatePaymentStatusTx(tx *sql.Tx, paymentId string, status constants.PaymentStatus) error
+	GetPaymentByIdTx(tx *sql.Tx, paymentId string) (*Payment, error)
 
 	GetIdempotentPayloadByKey(key string) (*IdempotencyKey, error)
 	CreateIdempotencyKey(ik *IdempotencyKey) error

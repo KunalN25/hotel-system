@@ -6,6 +6,14 @@ import (
 	"time"
 )
 
+const SchemaName = "public"
+
+const HotelTableName = "hotel"
+const UserTableName = "user"
+const BookingTableName = "booking"
+const PaymentsTableName = "payments"
+const IdempotencyKeyTableName = "idempotency_keys"
+
 type Hotel struct {
 	ID             int      `json:"id"`
 	Name           string   `json:"name"`
@@ -52,7 +60,7 @@ type Booking struct {
 }
 
 type Payment struct {
-	ID                int                     `db:"id"`
+	ID                string                  `db:"id"`
 	BookingID         int                     `db:"booking_id"`
 	OrderID           string                  `db:"order_id"` // payment order id
 	Amount            float32                 `db:"amount"`

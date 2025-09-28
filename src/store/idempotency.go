@@ -8,11 +8,7 @@ import (
 )
 
 func (ds *dataStore) CreateIdempotencyKey(ik *IdempotencyKey) error {
-	query := `
-	INSERT INTO idempotency_keys (id, idempotency_key, user_id, endpoint, request_payload, response_payload, created_at)
-	VALUES ($1, $2, $3, $4, $5, $6, $7)
-`
-
+	query := fmt.Sprintf("INSERT INTO %s.%s (id, idempotency_key, user_id, endpoint, request_payload, response_payload, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)", SchemaName, IdempotencyKeyTableName)
 	_, err := ds.db.Exec(
 		query,
 		ik.Id,
@@ -23,17 +19,11 @@ func (ds *dataStore) CreateIdempotencyKey(ik *IdempotencyKey) error {
 		ik.ResponsePayload,
 		ik.CreatedAt,
 	)
-
 	return err
 }
 
 func (ds *dataStore) GetIdempotentPayloadByKey(key string) (*IdempotencyKey, error) {
-	query := fmt.Sprintf(`
-		SELECT %s
-		FROM idempotency_keys
-		WHERE idempotency_key = $1
-	`, strings.Join(IdempotencyKeyColumns, ", "))
-
+	query := fmt.Sprintf("SELECT %s FROM %s.%s WHERE idempotency_key = $1", strings.Join(IdempotencyKeyColumns, ", "), SchemaName, IdempotencyKeyTableName)
 	row := ds.db.QueryRow(query, key)
 
 	var ik IdempotencyKey

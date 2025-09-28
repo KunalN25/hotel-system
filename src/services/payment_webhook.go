@@ -30,9 +30,13 @@ func (s *Service) PaymentWebhookHandler(w http.ResponseWriter, req *http.Request
 	}
 
 	// Pass the request body and Stripe-Signature header to ConstructEvent, along with the webhook signing key
-	// Use the secret provided by Stripe CLI for local testing
-	// or your webhook endpoint's secret.
-	webhookSigningSecret := "whsec_706605aff59b1618721a70fb865179954009c40e77046fdf172af444a0291075"
+	// Use the secret provided by Stripe CLI for local testing or your webhook endpoint's secret.
+	webhookSigningSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
+	if webhookSigningSecret == "" {
+		log.Println("STRIPE_WEBHOOK_SECRET not set in environment")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	event, err := webhook.ConstructEvent(body, req.Header.Get("Stripe-Signature"), webhookSigningSecret)
 
 	if err != nil {
@@ -66,6 +70,13 @@ func (s *Service) PaymentWebhookHandler(w http.ResponseWriter, req *http.Request
 		return
 	}
 
+	paymentId, ok := metadataMap["payment_id"]
+	if !ok {
+		log.Println("payment_id not found in metadata")
+		http.Error(w, errorcodes.ErrMetadataNotFound, http.StatusBadRequest)
+		return
+	}
+
 	ctx := context.Background()
 	tx, err := s.storageService.BeginTransaction(ctx)
 	if err != nil {
@@ -93,7 +104,7 @@ func (s *Service) PaymentWebhookHandler(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	payment, err := s.storageService.GetPaymentByCheckoutSessionIdTx(tx, checkoutSession.ID)
+	payment, err := s.storageService.GetPaymentByIdTx(tx, paymentId)
 	if err != nil {
 		log.Println("Error getting payment entry:", err)
 		http.Error(w, errorcodes.ErrPaymentNotFoundByOID, http.StatusNotFound)
@@ -109,7 +120,8 @@ func (s *Service) PaymentWebhookHandler(w http.ResponseWriter, req *http.Request
 	//paymentStatus, _ := constants.StripePaymentStatusToPaymentStatusMap[string(event.Type)]
 	paymentStatus := event.Type
 
-	if paymentStatus == stripe.EventTypeCheckoutSessionCompleted || paymentStatus == stripe.EventTypeCheckoutSessionAsyncPaymentSucceeded {
+	switch paymentStatus {
+	case stripe.EventTypeCheckoutSessionCompleted, stripe.EventTypeCheckoutSessionAsyncPaymentSucceeded:
 		// Update booking status to confirmed
 		booking.Status = store.BOOKING_CONFIRMED
 		err = s.storageService.UpdateBookingStatusTx(tx, int64(bookingId), booking.Status)
@@ -125,7 +137,7 @@ func (s *Service) PaymentWebhookHandler(w http.ResponseWriter, req *http.Request
 			http.Error(w, "Failed to update payment status", http.StatusInternalServerError)
 			return
 		}
-	} else if paymentStatus == stripe.EventTypeCheckoutSessionAsyncPaymentFailed {
+	case stripe.EventTypeCheckoutSessionAsyncPaymentFailed:
 		var hotel store.Hotel
 		hotel, err = s.storageService.GetHotelForUpdate(tx, int64(booking.HotelID))
 		if err != nil {

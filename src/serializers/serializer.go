@@ -90,11 +90,11 @@ func CreateIdempotencyKeySerializer(
 	)
 }
 
-func BookHotelResponseSerializer(checkoutUrl string, booking *store.Booking, totalCost float32, message string) *hotelsystem.BookHotelResponse {
+func BookHotelResponseSerializer(checkoutUrl string, bookingId int64, booking *store.Booking, totalCost float32, message string) *hotelsystem.BookHotelResponse {
 	var bookingDetails *hotelsystem.BookHotelResponseBookingDetails
 	if booking != nil {
 		bookingDetails = &hotelsystem.BookHotelResponseBookingDetails{
-			BookingID:   int64(booking.BookingID),
+			BookingID:   bookingId,
 			HotelID:     int64(booking.HotelID),
 			NumRooms:    int32(booking.NumberOfRooms),
 			NumDays:     int32(booking.NumberOfDays),
@@ -110,8 +110,9 @@ func BookHotelResponseSerializer(checkoutUrl string, booking *store.Booking, tot
 	}
 }
 
-func CreatePaymentSerializer(bookingId int64, checkoutSessionid string, totalCost float32) *store.Payment {
+func CreatePaymentSerializer(paymentId string, bookingId int64, checkoutSessionid string, totalCost float32) *store.Payment {
 	return &store.Payment{
+		ID:                paymentId,
 		BookingID:         int(bookingId),
 		Amount:            totalCost,
 		Currency:          "INR",

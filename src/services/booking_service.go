@@ -14,6 +14,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v82"
 	"github.com/stripe/stripe-go/v82/checkout/session"
 )
@@ -48,7 +49,7 @@ func (s *Service) BookHotel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if hotelForUpdate.AvailableRooms < int(bookHotelRequest.NumRooms) {
-		sendJsonResponse(w, serializers.BookHotelResponseSerializer("", nil, 0, "Not enough rooms available"))
+		sendJsonResponse(w, serializers.BookHotelResponseSerializer("", 0, nil, 0, "Not enough rooms available"))
 		return
 	}
 
@@ -73,6 +74,7 @@ func (s *Service) BookHotel(w http.ResponseWriter, r *http.Request) {
 	//params := serializers.CreateStripeCheckoutSessionParams(bookingId, hotelForUpdate, totalCost)
 	paymentStatusUrl := "http://localhost:6000/status"
 
+	paymentId := uuid.New().String()
 	params := &stripe.CheckoutSessionParams{
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
@@ -89,11 +91,7 @@ func (s *Service) BookHotel(w http.ResponseWriter, r *http.Request) {
 		},
 		Metadata: map[string]string{
 			constants.BookingIdField: fmt.Sprintf("%d", bookingId),
-		},
-		PaymentIntentData: &stripe.CheckoutSessionPaymentIntentDataParams{
-			Metadata: map[string]string{
-				constants.BookingIdField: fmt.Sprintf("%d", bookingId),
-			},
+			"payment_id":             paymentId,
 		},
 		Mode:          stripe.String(string(stripe.CheckoutSessionModePayment)),
 		CustomerEmail: stripe.String("k@gmail.com"),
@@ -101,7 +99,6 @@ func (s *Service) BookHotel(w http.ResponseWriter, r *http.Request) {
 		CancelURL:     stripe.String(paymentStatusUrl),
 	}
 
-	params.AddExpand("payment_intent")
 	checkoutSession, err := session.New(params)
 	if err != nil {
 		log.Printf("session.New: %v", err)
@@ -109,11 +106,10 @@ func (s *Service) BookHotel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newPayment := serializers.CreatePaymentSerializer(bookingId, checkoutSession.ID, totalCost)
+	newPayment := serializers.CreatePaymentSerializer(paymentId, bookingId, checkoutSession.ID, totalCost)
 	err = s.storageService.CreatePayment(newPayment)
 	if err != nil {
 		log.Println("Error creating payment entry:", err)
-		w.WriteHeader(http.StatusInternalServerError)
 		sendJsonResponse(w, hotelsystem.GenericSuccessResponse{
 			Status:  "FAIL",
 			Message: "Failed to create payment entry",
@@ -123,7 +119,7 @@ func (s *Service) BookHotel(w http.ResponseWriter, r *http.Request) {
 
 	CheckoutUrl = checkoutSession.URL // for testing
 
-	resp = serializers.BookHotelResponseSerializer(checkoutSession.URL, booking, totalCost, "Booking request created successfully")
+	resp = serializers.BookHotelResponseSerializer(checkoutSession.URL, bookingId, booking, totalCost, "Booking request created successfully")
 	idempotencyEntry := serializers.CreateIdempotencyKeySerializer(&bookHotelRequest, resp, userId, idempotencyKey)
 	err = s.storageService.CreateIdempotencyKey(idempotencyEntry)
 	if err != nil {

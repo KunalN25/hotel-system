@@ -177,14 +177,16 @@ func (p *PaymentDetails) GetMetadata() map[string]string {
 
 // PaymentStatusRequest corresponds to proto PaymentStatusRequest.
 type PaymentStatusRequest struct {
-	OrderID string `json:"order_id"`
+	OrderID   string `json:"order_id"`
+	BookingID int64  `json:"booking_id"`
 }
 
 // PaymentStatusResponse corresponds to proto PaymentStatusResponse.
 type PaymentStatusResponse struct {
-	OrderID string `json:"order_id"`
-	Status  string `json:"status"`
-	Message string `json:"message"`
+	OrderID       string `json:"order_id"`
+	PaymentStatus string `json:"payment_status"`
+	BookingStatus string `json:"booking_status"`
+	Message       string `json:"message"`
 }
 
 // GetBookingDetailsRequest corresponds to proto GetBookingDetailsRequest.

@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	payments2 "hotel-system/src/payments"
-	"hotel-system/src/schedulers"
+	scheduler "hotel-system/src/schedulers"
 	"hotel-system/src/serializers"
 	"hotel-system/src/store"
 	hotelsystem "hotel-system/src/types/hotelsystem"
 	"hotel-system/src/validators"
+	"log"
 	"net/http"
 )
 
@@ -46,6 +47,9 @@ func (s *Service) GetHotelsList(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
+	}
+	if getHotelsListReq.Limit == 0 {
+		getHotelsListReq.Limit = 10
 	}
 	if err = validators.ValidateGetHotelsListRequest(&getHotelsListReq); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -86,16 +90,27 @@ func (s *Service) GetPaymentStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: Change to payment by booking id or session id
-	payment, err := s.storageService.GetPaymentByCheckoutSessionId(paymentStatusRequest.OrderID)
+	payment, err := s.storageService.GetPaymentByBookingId(paymentStatusRequest.BookingID)
 	if err != nil {
+		log.Println("Error getting payment by booking id:", err)
 		http.Error(w, "Could not fetch payment details", http.StatusInternalServerError)
 		return
 	}
 
+	var bookingStatus string
+	booking, err := s.storageService.GetBookingById(paymentStatusRequest.BookingID)
+	if err != nil {
+		log.Println("Error getting booking details:", err)
+	}
+	if booking != nil {
+		bookingStatus = string(booking.Status)
+	}
+
 	status := hotelsystem.PaymentStatusResponse{
-		OrderID: paymentStatusRequest.OrderID,
-		Status:  string(payment.Status),
-		Message: "Payment status retrieved successfully",
+		OrderID:       paymentStatusRequest.OrderID,
+		PaymentStatus: string(payment.Status),
+		BookingStatus: bookingStatus,
+		Message:       "Payment status retrieved successfully",
 	}
 	sendJsonResponse(w, status)
 }

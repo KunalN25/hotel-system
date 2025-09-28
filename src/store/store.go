@@ -15,8 +15,7 @@ type dataStore struct {
 
 func (ds *dataStore) GetHotels(getHotelsListRequest *hotelsystem.GetHotelsListRequest) ([]Hotel, error) {
 	var hotels []Hotel
-	query := `
-		SELECT id, name, description, available_rooms, total_rooms, street, landmark, 
+	query := `SELECT id, name, description, available_rooms, total_rooms, street, landmark, 
 			   locality, city, pincode, state, image_urls, cost_per_night
 		FROM public.hotel
 		WHERE name      ILIKE $1 OR
@@ -25,8 +24,7 @@ func (ds *dataStore) GetHotels(getHotelsListRequest *hotelsystem.GetHotelsListRe
 			  locality  ILIKE $1 OR
 			  city      ILIKE $1 OR
 			  state     ILIKE $1
-		LIMIT $2 OFFSET $3;
-	`
+		LIMIT $2 OFFSET $3;`
 
 	likePattern := "%" + getHotelsListRequest.SearchQuery + "%"
 	rows, err := ds.db.Query(query, likePattern, getHotelsListRequest.Limit, getHotelsListRequest.Offset)
@@ -118,12 +116,10 @@ func (ds *dataStore) UpdateHotelRooms(hotelId int64, newRoomCount int) error {
 }
 
 func (ds *dataStore) CreateBooking(booking *Booking) (int64, error) {
-	query := `
-		INSERT INTO public.booking 
+	query := ` INSERT INTO public.booking 
 		(hotel_id, user_id, number_of_rooms, number_of_days, booking_time, check_in_date, check_out_date, status) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		RETURNING booking_id
-	`
+		RETURNING booking_id`
 
 	var bookingID int64
 	err := ds.db.QueryRow(
@@ -164,9 +160,9 @@ func (ds *dataStore) UpdateBookingStatus(bookingId int64, status BookingStatus) 
 	return nil
 }
 
-func (ds *dataStore) GetBookingById(bookingId int64) (Booking, error) {
+func (ds *dataStore) GetBookingById(bookingId int64) (*Booking, error) {
 	query := "SELECT booking_id, hotel_id, user_id, number_of_rooms, number_of_days, booking_time, check_in_date, check_out_date, status FROM public.booking WHERE booking_id = $1"
-	var b Booking
+	b := Booking{}
 	err := ds.db.QueryRow(query, bookingId).Scan(
 		&b.BookingID,
 		&b.HotelID,
@@ -179,9 +175,9 @@ func (ds *dataStore) GetBookingById(bookingId int64) (Booking, error) {
 		&b.Status,
 	)
 	if err != nil {
-		return Booking{}, err
+		return nil, err
 	}
-	return b, nil
+	return &b, nil
 }
 
 func (ds *dataStore) GetCompletedBookings() ([]*Booking, error) {
